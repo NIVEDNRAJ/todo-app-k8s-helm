@@ -1,0 +1,109 @@
+<div class="dashboard-container">
+  <!-- Sidebar / Header Area -->
+  <header class="header glass-panel">
+
+    <div class="user-profile">
+      <div class="user-info">
+        <span class="welcome-text">Welcome back,</span>
+        <span class="user-name">{{ userName() }}</span>
+      </div>
+      <button class="btn-logout" (click)="logout()" matTooltip="Logout">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="controls-bar">
+      <!-- Search -->
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input type="text" [value]="searchText()" (input)="onSearch($event)" placeholder="Search tasks..."
+          class="glass-input search-input" />
+      </div>
+
+      <!-- Filters -->
+      <div class="filters glass-panel">
+        <button [class.active]="completedFilter() === undefined" (click)="setFilter(undefined)">
+          All
+        </button>
+        <button [class.active]="completedFilter() === false" (click)="setFilter(false)">
+          Pending
+        </button>
+        <button [class.active]="completedFilter() === true" (click)="setFilter(true)">
+          Completed
+        </button>
+      </div>
+
+      <!-- Add Button -->
+      <button class="btn-premium btn-add-task" (click)="openAddDialog()">
+        <mat-icon>add</mat-icon>
+        <span>Add Task</span>
+      </button>
+    </div>
+
+    <!-- Loading Spinner -->
+    @if (isLoading()) {
+    <div class="spinner-overlay">
+      <mat-spinner diameter="60" strokeWidth="4"></mat-spinner>
+    </div>
+    }
+
+    <!-- Todo List Grid -->
+    <div class="todo-grid">
+      @for (todo of todos(); track todo.id) {
+      <div class="todo-card glass-panel" [class.completed]="todo.isCompleted">
+        <div class="todo-card-header">
+          <button class="btn-checkbox" (click)="toggleComplete(todo)"
+            [matTooltip]="todo.isCompleted ? 'Mark Pending' : 'Mark Complete'">
+            <mat-icon class="check-icon">
+              {{ todo.isCompleted ? 'check_circle' : 'radio_button_unchecked' }}
+            </mat-icon>
+          </button>
+          <h3 class="todo-title">{{ todo.title }}</h3>
+        </div>
+
+        <p class="todo-desc">{{ todo.description || 'No description provided.' }}</p>
+
+        <div class="todo-card-footer">
+          <span class="todo-date">
+            <mat-icon>calendar_today</mat-icon>
+            {{ todo.createdAt | date:'MMM d, y, h:mm a' }}
+          </span>
+          <div class="todo-actions">
+            <button class="btn-action edit" (click)="openEditDialog(todo)" matTooltip="Edit Task">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button class="btn-action delete" (click)="deleteTodo(todo.id)" matTooltip="Delete Task">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+      } @empty {
+      @if (!isLoading()) {
+      <div class="empty-state glass-panel">
+        <h3>No tasks found</h3>
+        <p>Get started by adding a new task!</p>
+      </div>
+      }
+      }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalCount() > 0) {
+    <div class="pagination-bar glass-panel">
+      <button [disabled]="pageNumber() === 1" (click)="prevPage()">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span class="page-info">
+        Page {{ pageNumber() }} of {{ totalPages() }}
+      </span>
+      <button [disabled]="pageNumber() === totalPages()" (click)="nextPage()">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+    }
+  </main>
+</div>

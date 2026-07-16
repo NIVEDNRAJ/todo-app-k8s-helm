@@ -1,0 +1,105 @@
+<div class="auth-container">
+  <div class="auth-card glass-panel">
+    <div class="auth-header">
+      <h2>Create Account</h2>
+      <p class="subtitle">Join us to start organizing your life</p>
+      </div>
+    @if (errorMessage()) {
+      <div class="error-banner">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input 
+          id="name" 
+          type="text" 
+          formControlName="name" 
+          class="glass-input" 
+          required
+        />
+        @if (registerForm.get('name')?.touched && registerForm.get('name')?.errors?.['required']) {
+          <span class="validation-error">Name is required</span>
+        }
+        @if (registerForm.get('name')?.touched && registerForm.get('name')?.errors?.['maxlength']) {
+          <span class="validation-error">Name cannot exceed 100 characters</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input 
+          id="email" 
+          type="email" 
+          formControlName="email" 
+          class="glass-input"
+          required
+        />
+        @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['required']) {
+          <span class="validation-error">Email is required</span>
+        }
+        @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['email']) {
+          <span class="validation-error">Enter a valid email address</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input 
+            id="password" 
+            [type]="hidePassword() ? 'password' : 'text'" 
+            formControlName="password" 
+            class="glass-input" 
+            placeholder="••••••••"
+            required
+          />
+        </div>
+        @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['required']) {
+          <span class="validation-error">Password is required</span>
+        }
+        @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['minlength']) {
+          <span class="validation-error">Password must be at least 6 characters</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="password-wrapper">
+          <input 
+            id="confirmPassword" 
+            [type]="hidePassword() ? 'password' : 'text'" 
+            formControlName="confirmPassword" 
+            class="glass-input" 
+            placeholder="••••••••"
+            required
+          />
+        </div>
+        @if (registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.errors?.['required']) {
+          <span class="validation-error">Confirm password is required</span>
+        }
+        @if (registerForm.get('confirmPassword')?.touched && registerForm.errors?.['passwordMismatch']) {
+          <span class="validation-error">Passwords do not match</span>
+        }
+      </div>
+
+      <button type="submit" [disabled]="registerForm.invalid || isLoading()" class="btn-premium w-full">
+        @if (isLoading()) {
+          <div class="spinner-container">
+            <mat-spinner diameter="20" strokeWidth="2.5"></mat-spinner>
+            <span>Creating account...</span>
+          </div>
+        } @else {
+          Create Account
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a routerLink="/login">Sign In</a></p>
+    </div>
+  </div>
+</div>

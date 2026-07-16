@@ -1,0 +1,58 @@
+<div class="auth-container">
+  <div class="auth-card glass-panel">
+    <div class="auth-header">
+      <h2>Welcome Back</h2>
+      <p class="subtitle">Sign in to manage your daily tasks</p>
+    </div>
+
+    @if (errorMessage()) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+    }
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input id="email" type="email" formControlName="email" class="glass-input" placeholder="name@example.com"
+          required />
+        @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['required']) {
+        <span class="validation-error">Email is required</span>
+        }
+        @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['email']) {
+        <span class="validation-error">Enter a valid email address</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input id="password" [type]="hidePassword() ? 'password' : 'text'" formControlName="password"
+            class="glass-input" placeholder="••••••••" required />
+        </div>
+        @if (loginForm.get('password')?.touched && loginForm.get('password')?.errors?.['required']) {
+        <span class="validation-error">Password is required</span>
+        }
+        @if (loginForm.get('password')?.touched && loginForm.get('password')?.errors?.['minlength']) {
+        <span class="validation-error">Password must be at least 6 characters</span>
+        }
+      </div>
+
+      <button type="submit" [disabled]="loginForm.invalid || isLoading()" class="btn-premium w-full">
+        @if (isLoading()) {
+        <div class="spinner-container">
+          <mat-spinner diameter="20" strokeWidth="2.5"></mat-spinner>
+          <span>Signing in...</span>
+        </div>
+        } @else {
+        Sign In
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account? <a routerLink="/register">Create one now</a></p>
+    </div>
+  </div>
+</div>
