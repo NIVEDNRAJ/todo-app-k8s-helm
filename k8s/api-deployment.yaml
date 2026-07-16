@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+  namespace: todo-app
+  labels:
+    app: todo-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-api
+  template:
+    metadata:
+      labels:
+        app: todo-api
+    spec:
+      containers:
+        - name: api
+          image: todo-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+              name: api
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: todo-secrets
+                  key: mysql-root-password
+            - name: DB_CONNECTION_STRING
+              value: Server=mysql-service;Port=3306;Database=todo_db;User=root;Password=$(DB_PASSWORD);
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: todo-secrets
+                  key: jwt-secret
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-configmap
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-configmap
+                  key: JWT_AUDIENCE
+            - name: RUN_MIGRATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-configmap
+                  key: RUN_MIGRATIONS
+            - name: ENABLE_SWAGGER
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-configmap
+                  key: ENABLE_SWAGGER
