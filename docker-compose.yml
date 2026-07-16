@@ -1,0 +1,51 @@
+services:
+  todo-mysql-db:
+    image: mysql:8.0
+    container_name: todo-mysql-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: todo_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: always
+
+  todo-web-api:
+    build:
+      context: ./TodoApi
+      dockerfile: Dockerfile
+    container_name: todo-web-api
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_CONNECTION_STRING=Server=todo-mysql-db;Port=3306;Database=todo_db;User=root;Password=root_password;
+      - JWT_SECRET=SuperSecretKeyForTodoAppAuthJWTToken2026
+      - JWT_ISSUER=TodoApi
+      - JWT_AUDIENCE=TodoUi
+      - RUN_MIGRATIONS=true
+      - ENABLE_SWAGGER=true
+    depends_on:
+      todo-mysql-db:
+        condition: service_healthy
+    restart: always
+
+  todo-angular-ui:
+    build:
+      context: ./todo-ui
+      dockerfile: Dockerfile
+    container_name: todo-angular-ui
+    ports:
+      - "4200:80"
+    depends_on:
+      - todo-web-api
+    restart: always
+
+volumes:
+  mysql-data:
