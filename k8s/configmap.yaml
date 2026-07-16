@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-configmap
+  namespace: todo-app
+data:
+  JWT_ISSUER: "TodoApi"
+  JWT_AUDIENCE: "TodoUi"
+  RUN_MIGRATIONS: "true"
+  ENABLE_SWAGGER: "true"
