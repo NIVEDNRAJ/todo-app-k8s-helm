@@ -1,0 +1,28 @@
+# values-settings.yaml
+# Only application configuration.
+api:
+  image:
+    repository: todo-backend
+    tag: latest
+  port: 5000
+  config:
+    jwtIssuer: TodoApi
+    jwtAudience: TodoUi
+    runMigrations: "true"
+    enableSwagger: "true"
+
+ui:
+  image:
+    repository: todo-frontend
+    tag: latest
+  port: 80
+
+db:
+  image:
+    repository: mysql
+    tag: "8.0"
+  port: 3306
+  config:
+    databaseName: todo_db
+    user: root
+    host: mysql-service
