@@ -1,0 +1,14 @@
+# values-common.yaml
+# Only common infrastructure settings.
+namespace: todo-app
+imagePullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+ingress:
+  className: nginx
+
+commonLabels:
+  environment: production
+  project: todo-app
