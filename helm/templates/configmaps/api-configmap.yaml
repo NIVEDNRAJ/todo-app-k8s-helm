@@ -1,0 +1,8 @@
+{{- define "todo-api-configmap" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+JWT_ISSUER: {{ $component.config.jwtIssuer | quote }}
+JWT_AUDIENCE: {{ $component.config.jwtAudience | quote }}
+RUN_MIGRATIONS: {{ $component.config.runMigrations | quote }}
+ENABLE_SWAGGER: {{ $component.config.enableSwagger | quote }}
+{{- end -}}

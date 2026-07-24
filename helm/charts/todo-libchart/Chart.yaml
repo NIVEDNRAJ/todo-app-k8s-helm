@@ -1,0 +1,5 @@
+apiVersion: v2
+name: todo-libchart
+description: Reusable Kubernetes templates library for Platform Engineering
+type: library
+version: 0.1.0

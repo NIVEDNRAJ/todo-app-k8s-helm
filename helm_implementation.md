@@ -258,6 +258,32 @@ In production team workflows:
 In production team workflows:
 * Ingresses are rarely simple HTTP configurations. They include TLS certificates for SSL/HTTPS termination. In enterprise setups, Ingress manifests integrate with **cert-manager** via annotations (e.g., `cert-manager.io/cluster-issuer: letsencrypt-prod`) to automatically provision and rotate SSL certificates from Let's Encrypt.
 
+---
+
+## Step 11: Implement Startup, Liveness, and Readiness Probes
+
+### Mentoring & DevOps Architectural Review
+
+#### 1. Why these changes were made
+* **Self-Healing Enablement**: Configured Startup, Liveness, and Readiness probes across all pods (API, UI, Database) so that Kubernetes can automatically detect deadlocks, handle traffic routing, and restart failed containers.
+* **Slow-Start Management**: Implemented `startupProbe` to handle container bootstrapping (especially running database schema migrations on the API pod and initial table creation on the MySQL pod). This keeps liveness probes from prematurely killing the container before it finishes starting up.
+
+#### 2. Where the values belong (and why)
+* **`values-settings.yaml`**: The probe configs (initial delays, evaluation intervals, and failure thresholds) belong in settings because they are application configuration settings that developers and DevOps engineers tune based on how the application itself behaves and starts.
+
+#### 3. Enterprise Helm Practices
+* **Use Startup Probes for Migrations**: Never rely solely on a long `initialDelaySeconds` on the liveness probe to handle database migrations. If migrations take longer than expected, the liveness probe will timeout and restart the container, causing a boot-loop. Using a `startupProbe` with a high `failureThreshold` (e.g. 30 failures * 5s = 150s) gives the app plenty of time to boot while allowing faster failure detection once running.
+* **Different Probe Actions**: Sourced HTTP GET probes for web endpoints (like port 80 Nginx) and TCP socket probes for database/API ports (like port 5000 and 3306) to match the appropriate endpoint protocol.
+
+#### 4. Common Mistakes
+* **Liveness Probe Mismatching Readiness Probe**: Pointing the liveness probe to a downstream dependency healthcheck (like testing database ping). If the database goes down temporarily, the liveness probe will fail, causing Kubernetes to restart the healthy API pod repeatedly. **Liveness probes should only check local container health (e.g. is the process alive?). Readiness probes should check downstream dependencies.**
+* **Aggressive Probing Intervals**: Setting `periodSeconds` to very low values (e.g. 1 second) which causes high CPU usage from continuous polling and can overload the database or backend.
+
+#### 5. Production DevOps Execution
+In production team workflows:
+* DevOps teams map probes to dedicated health endpoints (e.g. `/healthz/live` and `/healthz/ready`) built using standard libraries (such as ASP.NET Core Health Checks). The readiness endpoint tests the database connection, while the liveness endpoint simply checks if the server process is responsive.
+
+
 
 
 

@@ -1,0 +1,398 @@
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: todo-secrets
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-mysql
+type: Opaque
+stringData:
+  mysql-root-password: "root_password"
+  jwt-secret: "SuperSecretKeyForTodoAppAuthJWTToken2026"
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-configmap
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-api
+data:
+  JWT_ISSUER: "TodoApi"
+  JWT_AUDIENCE: "TodoUi"
+  RUN_MIGRATIONS: "true"
+  ENABLE_SWAGGER: "true"
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-web-api
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+  selector:
+    app: todo-api
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-mysql
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3306
+      targetPort: 3306
+      protocol: TCP
+      name: mysql
+  selector:
+    app: todo-mysql
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui-service
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-ui
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: todo-ui
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-api
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: todo-app-0.1.0
+        app.kubernetes.io/instance: todo-app
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: "1.0.0"
+        environment: production
+        project: todo-app
+        app: todo-api
+    spec:
+      containers:
+        - name: api
+          image: "todo-backend:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+              name: api
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: mysql-root-password
+                  name: todo-secrets
+            - name: DB_CONNECTION_STRING
+              value: "Server=mysql-service;Port=3306;Database=todo_db;User=root;Password=$(DB_PASSWORD);"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: jwt-secret
+                  name: todo-secrets
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  key: JWT_ISSUER
+                  name: todo-configmap
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  key: JWT_AUDIENCE
+                  name: todo-configmap
+            - name: RUN_MIGRATIONS
+              valueFrom:
+                configMapKeyRef:
+                  key: RUN_MIGRATIONS
+                  name: todo-configmap
+            - name: ENABLE_SWAGGER
+              valueFrom:
+                configMapKeyRef:
+                  key: ENABLE_SWAGGER
+                  name: todo-configmap
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          startupProbe:
+            failureThreshold: 30
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            tcpSocket:
+              port: 5000
+          livenessProbe:
+            failureThreshold: 3
+            periodSeconds: 20
+            tcpSocket:
+              port: 5000
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            periodSeconds: 10
+            tcpSocket:
+              port: 5000
+            timeoutSeconds: 2
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-mysql
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: todo-app-0.1.0
+        app.kubernetes.io/instance: todo-app
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: "1.0.0"
+        environment: production
+        project: todo-app
+        app: todo-mysql
+    spec:
+      containers:
+        - name: mysql
+          image: "mysql:8.0"
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: mysql-root-password
+                  name: todo-secrets
+            - name: MYSQL_DATABASE
+              value: "todo_db"
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          startupProbe:
+            failureThreshold: 30
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            tcpSocket:
+              port: 3306
+          livenessProbe:
+            failureThreshold: 3
+            periodSeconds: 20
+            tcpSocket:
+              port: 3306
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            periodSeconds: 10
+            tcpSocket:
+              port: 3306
+            timeoutSeconds: 2
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-persistent-storage
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: 'mysql-pvc'
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui-deployment
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-ui
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: todo-app-0.1.0
+        app.kubernetes.io/instance: todo-app
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: "1.0.0"
+        environment: production
+        project: todo-app
+        app: todo-ui
+    spec:
+      containers:
+        - name: ui
+          image: "todo-frontend:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          startupProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 15
+            timeoutSeconds: 3
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 10
+            timeoutSeconds: 2
+---
+# Source: todo-app/templates/manifest.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: todo-ingress
+  namespace: todo-app
+  labels:
+    helm.sh/chart: todo-app-0.1.0
+    app.kubernetes.io/instance: todo-app
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "1.0.0"
+    environment: production
+    project: todo-app
+    app: todo-ui
+spec:
+  ingressClassName: "nginx"
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ui-service
+                port:
+                  number: 80

@@ -1,0 +1,3 @@
+{{- define "todo-mysql-configmap" -}}
+# No application-specific DB configmap settings needed for legacy compatibility
+{{- end -}}

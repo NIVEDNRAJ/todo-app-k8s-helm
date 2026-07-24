@@ -1,0 +1,172 @@
+# values-settings.yaml
+# Only application configuration.
+components:
+  api:
+    enabled: true
+    name: todo-api
+    deploymentName: api-deployment
+    serviceName: todo-web-api
+    appLanguage: dotnet
+    configMapEnabled: true
+    configMapName: todo-configmap
+    image:
+      repository: todo-backend
+      tag: latest
+      pullPolicy: IfNotPresent
+    service:
+      port: 5000
+      portName: http
+      containerPortName: api
+    config:
+      jwtIssuer: TodoApi
+      jwtAudience: TodoUi
+      runMigrations: "true"
+      enableSwagger: "true"
+    envVars:
+      - name: DB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: todo-secrets
+            key: mysql-root-password
+      - name: DB_CONNECTION_STRING
+        value: "Server={{ .Values.components.db.config.host }};Port={{ .Values.components.db.service.port }};Database={{ .Values.components.db.config.databaseName }};User={{ .Values.components.db.config.user }};Password=$(DB_PASSWORD);"
+      - name: JWT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: todo-secrets
+            key: jwt-secret
+      - name: JWT_ISSUER
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: JWT_ISSUER
+      - name: JWT_AUDIENCE
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: JWT_AUDIENCE
+      - name: RUN_MIGRATIONS
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: RUN_MIGRATIONS
+      - name: ENABLE_SWAGGER
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: ENABLE_SWAGGER
+    probes:
+      startup:
+        tcpSocket:
+          port: 5000
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 30
+      liveness:
+        tcpSocket:
+          port: 5000
+        periodSeconds: 20
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        tcpSocket:
+          port: 5000
+        periodSeconds: 10
+        timeoutSeconds: 2
+        failureThreshold: 3
+
+  ui:
+    enabled: true
+    name: todo-ui
+    deploymentName: ui-deployment
+    serviceName: ui-service
+    appLanguage: html
+    image:
+      repository: todo-frontend
+      tag: latest
+      pullPolicy: IfNotPresent
+    service:
+      port: 80
+      portName: http
+    ingress:
+      enabled: true
+      name: todo-ingress
+      paths:
+        - path: /
+          pathType: Prefix
+    probes:
+      startup:
+        httpGet:
+          path: /
+          port: 80
+        initialDelaySeconds: 2
+        periodSeconds: 3
+        failureThreshold: 10
+      liveness:
+        httpGet:
+          path: /
+          port: 80
+        periodSeconds: 15
+        timeoutSeconds: 3
+        failureThreshold: 3
+      readiness:
+        httpGet:
+          path: /
+          port: 80
+        periodSeconds: 10
+        timeoutSeconds: 2
+        failureThreshold: 3
+
+  db:
+    enabled: true
+    name: todo-mysql
+    containerName: mysql
+    deploymentName: mysql-deployment
+    serviceName: mysql-service
+    appLanguage: mysql
+    secretEnabled: true
+    secretName: todo-secrets
+    image:
+      repository: mysql
+      tag: "8.0"
+    service:
+      port: 3306
+      portName: mysql
+    config:
+      databaseName: todo_db
+      user: root
+      host: mysql-service
+    envVars:
+      - name: MYSQL_ROOT_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: todo-secrets
+            key: mysql-root-password
+      - name: MYSQL_DATABASE
+        value: "{{ .Values.components.db.config.databaseName }}"
+    volumeMounts:
+      - name: mysql-persistent-storage
+        mountPath: /var/lib/mysql
+    volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: "{{ .Values.components.db.persistence.claimName }}"
+    probes:
+      startup:
+        tcpSocket:
+          port: 3306
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 30
+      liveness:
+        tcpSocket:
+          port: 3306
+        periodSeconds: 20
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        tcpSocket:
+          port: 3306
+        periodSeconds: 10
+        timeoutSeconds: 2
+        failureThreshold: 3
