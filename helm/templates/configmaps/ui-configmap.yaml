@@ -1,0 +1,3 @@
+{{- define "todo-ui-configmap" -}}
+# No application-specific UI configmap settings needed for legacy compatibility
+{{- end -}}

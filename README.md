@@ -200,6 +200,12 @@ Once your Minikube cluster and images are ready (see *Minikube Setup (From Scrat
    helm install todo ./helm/todo-app -f ./helm/todo-app/values-common.yaml -f ./helm/todo-app/values-settings.yaml -f ./helm/todo-app/values-size.yaml -f ./helm/todo-app/values-secrets.yaml
    ```
 
+2. **Upgrade / Apply changes**:
+   If you change any configuration in the values files or templates, apply the updates by running:
+   ```bash
+   helm upgrade todo ./helm/todo-app -f ./helm/todo-app/values-common.yaml -f ./helm/todo-app/values-settings.yaml -f ./helm/todo-app/values-size.yaml -f ./helm/todo-app/values-secrets.yaml
+   ```
+
 3. **Verify Deployment**:
    ```bash
    kubectl get all -n todo-app

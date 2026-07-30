@@ -1,0 +1,3 @@
+# values.yaml
+# Default values file (intentionally empty).
+# Environment settings are isolated in values-common.yaml, values-settings.yaml, values-size.yaml, and values-secrets.yaml.

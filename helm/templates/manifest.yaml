@@ -1,0 +1,11 @@
+{{- include "todo-libchart.serviceaccount.tpl" . -}}
+{{- include "todo-libchart.secret.tpl" . -}}
+{{- include "todo-libchart.configmap.tpl" . -}}
+{{- include "todo-libchart.pvc.tpl" . -}}
+{{- include "todo-libchart.pv.tpl" . -}}
+{{- include "todo-libchart.deployment.tpl" . -}}
+{{- include "todo-libchart.service.tpl" . -}}
+{{- include "todo-libchart.ingress.tpl" . -}}
+{{- include "todo-libchart.hpa.tpl" . -}}
+{{- include "todo-libchart.pdb.tpl" . -}}
+{{- include "todo-libchart.gateway.tpl" . -}}

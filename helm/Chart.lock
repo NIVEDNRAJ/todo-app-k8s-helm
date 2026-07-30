@@ -1,0 +1,6 @@
+dependencies:
+- name: todo-libchart
+  repository: file://charts/todo-libchart
+  version: 0.1.0
+digest: sha256:45e8706dc0c48e8767aec5e3724d0c7a8250687641a6e99a8bf8b53847dc076d
+generated: "2026-07-17T10:38:05.6447178+05:30"

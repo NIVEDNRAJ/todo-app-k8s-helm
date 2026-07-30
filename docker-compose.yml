@@ -5,12 +5,12 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
       MYSQL_DATABASE: todo_db
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,9 +24,11 @@ services:
     container_name: todo-web-api
     ports:
       - "5000:5000"
+    env_file:
+      - ./TodoApi/.env
     environment:
-      - DB_CONNECTION_STRING=Server=todo-mysql-db;Port=3306;Database=todo_db;User=root;Password=root_password;
-      - JWT_SECRET=SuperSecretKeyForTodoAppAuthJWTToken2026
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING:-Server=todo-mysql-db;Port=3306;Database=todo_db;User=root;Password=${MYSQL_ROOT_PASSWORD:-root_password};}
+      - JWT_SECRET=${JWT_SECRET:-SuperSecretKeyForTodoAppAuthJWTToken2026}
       - JWT_ISSUER=TodoApi
       - JWT_AUDIENCE=TodoUi
       - RUN_MIGRATIONS=true

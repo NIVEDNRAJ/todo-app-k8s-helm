@@ -1,0 +1,182 @@
+# values-settings.yaml
+# Application configuration & HashiCorp Vault integration settings.
+
+vault:
+  enabled: true
+  address: "http://vault.vault.svc.cluster.local:8200"
+  role: "todo-api-role"
+  secretPath: "secret/data/todo-app"
+  authPath: "auth/kubernetes"
+
+components:
+  api:
+    enabled: true
+    name: todo-api
+    deploymentName: api-deployment
+    serviceName: todo-web-api
+    serviceAccountName: todo-api
+    appLanguage: dotnet
+    configMapEnabled: true
+    configMapName: todo-configmap
+    podAnnotations:
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/role: "todo-api-role"
+      vault.hashicorp.com/vault-address: "http://vault.vault.svc.cluster.local:8200"
+      vault.hashicorp.com/agent-inject-secret-secrets: "secret/data/todo-app"
+      vault.hashicorp.com/agent-inject-template-secrets: |
+        {{- with secret "secret/data/todo-app" -}}
+        export DB_PASSWORD="{{ .Data.data.db_password }}"
+        export JWT_SECRET="{{ .Data.data.jwt_secret }}"
+        export DB_CONNECTION_STRING="Server=mysql-service;Port=3306;Database=todo_db;User=root;Password={{ .Data.data.db_password }};"
+        {{- end -}}
+    command: ["/bin/sh", "-c"]
+    args: ["if [ -f /vault/secrets/secrets ]; then set -a; . /vault/secrets/secrets; set +a; fi; exec dotnet TodoApi.dll"]
+    image:
+      repository: todo-backend
+      tag: latest
+      pullPolicy: IfNotPresent
+    service:
+      port: 5000
+      portName: http
+      containerPortName: api
+    config:
+      jwtIssuer: TodoApi
+      jwtAudience: TodoUi
+      runMigrations: "true"
+      enableSwagger: "true"
+    envVars:
+      - name: JWT_ISSUER
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: JWT_ISSUER
+      - name: JWT_AUDIENCE
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: JWT_AUDIENCE
+      - name: RUN_MIGRATIONS
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: RUN_MIGRATIONS
+      - name: ENABLE_SWAGGER
+        valueFrom:
+          configMapKeyRef:
+            name: todo-configmap
+            key: ENABLE_SWAGGER
+    probes:
+      startup:
+        tcpSocket:
+          port: 5000
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 30
+      liveness:
+        tcpSocket:
+          port: 5000
+        periodSeconds: 20
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        tcpSocket:
+          port: 5000
+        periodSeconds: 10
+        timeoutSeconds: 2
+        failureThreshold: 3
+
+  ui:
+    enabled: true
+    name: todo-ui
+    deploymentName: ui-deployment
+    serviceName: ui-service
+    appLanguage: html
+    image:
+      repository: todo-frontend
+      tag: latest
+      pullPolicy: IfNotPresent
+    service:
+      port: 80
+      portName: http
+    ingress:
+      enabled: true
+      name: todo-ingress
+      paths:
+        - path: /
+          pathType: Prefix
+    probes:
+      startup:
+        httpGet:
+          path: /
+          port: 80
+        initialDelaySeconds: 2
+        periodSeconds: 3
+        failureThreshold: 10
+      liveness:
+        httpGet:
+          path: /
+          port: 80
+        periodSeconds: 15
+        timeoutSeconds: 3
+        failureThreshold: 3
+      readiness:
+        httpGet:
+          path: /
+          port: 80
+        periodSeconds: 10
+        timeoutSeconds: 2
+        failureThreshold: 3
+
+  db:
+    enabled: true
+    name: todo-mysql
+    containerName: mysql
+    deploymentName: mysql-deployment
+    serviceName: mysql-service
+    appLanguage: mysql
+    secretEnabled: true
+    secretName: todo-secrets
+    image:
+      repository: mysql
+      tag: "8.0"
+    service:
+      port: 3306
+      portName: mysql
+    config:
+      databaseName: todo_db
+      user: root
+      host: mysql-service
+    envVars:
+      - name: MYSQL_ROOT_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: todo-secrets
+            key: mysql-root-password
+      - name: MYSQL_DATABASE
+        value: "{{ .Values.components.db.config.databaseName }}"
+    volumeMounts:
+      - name: mysql-persistent-storage
+        mountPath: /var/lib/mysql
+    volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: "mysql-pvc"
+    probes:
+      startup:
+        tcpSocket:
+          port: 3306
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 30
+      liveness:
+        tcpSocket:
+          port: 3306
+        periodSeconds: 20
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        tcpSocket:
+          port: 3306
+        periodSeconds: 10
+        timeoutSeconds: 2
+        failureThreshold: 3
