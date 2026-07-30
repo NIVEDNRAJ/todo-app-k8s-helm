@@ -46,6 +46,11 @@ spec:
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
+      {{- if $val.serviceAccountName }}
+      serviceAccountName: {{ $val.serviceAccountName }}
+      {{- else if $val.serviceAccount }}
+      serviceAccountName: {{ $val.serviceAccount.name | default $val.name }}
+      {{- end }}
       {{- if $val.securityContext }}
       securityContext:
         {{- toYaml $val.securityContext | nindent 8 }}
@@ -55,6 +60,14 @@ spec:
           image: "{{ $val.image.repository }}:{{ $val.image.tag | default "latest" }}"
           {{- if $val.image.pullPolicy }}
           imagePullPolicy: {{ $val.image.pullPolicy }}
+          {{- end }}
+          {{- if $val.command }}
+          command:
+            {{- toYaml $val.command | nindent 12 }}
+          {{- end }}
+          {{- if $val.args }}
+          args:
+            {{- toYaml $val.args | nindent 12 }}
           {{- end }}
           {{- if $val.service }}
           ports:

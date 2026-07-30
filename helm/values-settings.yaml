@@ -1,14 +1,36 @@
 # values-settings.yaml
-# Only application configuration.
+# Application configuration & HashiCorp Vault integration settings.
+
+vault:
+  enabled: true
+  address: "http://vault.vault.svc.cluster.local:8200"
+  role: "todo-api-role"
+  secretPath: "secret/data/todo-app"
+  authPath: "auth/kubernetes"
+
 components:
   api:
     enabled: true
     name: todo-api
     deploymentName: api-deployment
     serviceName: todo-web-api
+    serviceAccountName: todo-api
     appLanguage: dotnet
     configMapEnabled: true
     configMapName: todo-configmap
+    podAnnotations:
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/role: "todo-api-role"
+      vault.hashicorp.com/vault-address: "http://vault.vault.svc.cluster.local:8200"
+      vault.hashicorp.com/agent-inject-secret-secrets: "secret/data/todo-app"
+      vault.hashicorp.com/agent-inject-template-secrets: |
+        {{- with secret "secret/data/todo-app" -}}
+        export DB_PASSWORD="{{ .Data.data.db_password }}"
+        export JWT_SECRET="{{ .Data.data.jwt_secret }}"
+        export DB_CONNECTION_STRING="Server=mysql-service;Port=3306;Database=todo_db;User=root;Password={{ .Data.data.db_password }};"
+        {{- end -}}
+    command: ["/bin/sh", "-c"]
+    args: ["if [ -f /vault/secrets/secrets ]; then set -a; . /vault/secrets/secrets; set +a; fi; exec dotnet TodoApi.dll"]
     image:
       repository: todo-backend
       tag: latest
@@ -23,18 +45,6 @@ components:
       runMigrations: "true"
       enableSwagger: "true"
     envVars:
-      - name: DB_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: todo-secrets
-            key: mysql-root-password
-      - name: DB_CONNECTION_STRING
-        value: "Server={{ .Values.components.db.config.host }};Port={{ .Values.components.db.service.port }};Database={{ .Values.components.db.config.databaseName }};User={{ .Values.components.db.config.user }};Password=$(DB_PASSWORD);"
-      - name: JWT_SECRET
-        valueFrom:
-          secretKeyRef:
-            name: todo-secrets
-            key: jwt-secret
       - name: JWT_ISSUER
         valueFrom:
           configMapKeyRef:
@@ -150,7 +160,7 @@ components:
     volumes:
       - name: mysql-persistent-storage
         persistentVolumeClaim:
-          claimName: "{{ .Values.components.db.persistence.claimName }}"
+          claimName: "mysql-pvc"
     probes:
       startup:
         tcpSocket:
